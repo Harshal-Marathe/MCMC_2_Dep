@@ -164,6 +164,10 @@ def _make_globals(cfg: dict):
     g["INITIAL_OWN_NONMEDIA_BETAS"]  = cfg.get("initial_own_nonmedia_betas", {})
     g["INITIAL_COMP_NONMEDIA_BETAS"] = cfg.get("initial_comp_nonmedia_betas", {})
     g["INITIAL_PRICE_BETA"]          = cfg.get("initial_price_beta", {})
+    # Tab 4 · D4 initial-beta prior window: per-variable {mean, sd} overrides and a
+    # global multiplier on the automatic initial sd (see modules/initial_priors_ui.py).
+    g["INITIAL_BETA_PRIORS"]         = cfg.get("initial_beta_priors", {}) or {}
+    g["INITIAL_BETA_SD_MULT"]        = float(cfg.get("initial_beta_sd_mult", 1.0) or 1.0)
     return g
 
 

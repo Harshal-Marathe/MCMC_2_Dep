@@ -13,6 +13,7 @@ from modules.ui_helpers import (
     weibull_placeholder, need_data, safe_multiselect,
 )
 from modules.bounds_ui import render_per_channel_bounds
+from modules.initial_priors_ui import render_initial_beta_priors
 from modules.spike_dummies import build_spike_dummy_columns, drop_columns_if_present
 
 
@@ -947,6 +948,34 @@ def render_tab4():
 
     st.divider()
 
+    # ── D4. Initial β priors ─────────────────────────────────────────
+    st.markdown("### D4 · Initial β Priors (starting value of each beta)")
+    info(
+        "🎯 <b>Control the period-0 beta.</b> By default each beta starts at 0 with a very "
+        "wide spread, so a channel with small inputs can show a huge first-period β that "
+        "decays over the next few periods. Set an <b>Initial mean</b> and a tight "
+        "<b>Initial sd</b> for such variables (or shrink all automatic sds with the slider). "
+        "Leave rows untouched to keep the defaults."
+    )
+    _g2 = bool(different_predictors_2 and enable_second_dependent and target2)
+    _t2 = target2 if (enable_second_dependent and target2) else target
+    _groups = [
+        ("Own Media", list(media), target), ("Comp Media", list(comp_media), target),
+        ("Non-Media", list(non_media), target), ("Comp Non-Media", list(comp_nonmedia), target),
+        ("Price", list(price_vars) if use_price else [], target),
+    ]
+    if _g2:
+        _groups += [
+            ("Own Media (Dep 2)", list(media_2), _t2), ("Comp Media (Dep 2)", list(comp_media_2), _t2),
+            ("Non-Media (Dep 2)", list(non_media_2), _t2),
+            ("Comp Non-Media (Dep 2)", list(comp_nonmedia_2), _t2),
+            ("Price (Dep 2)", list(price_vars_2) if use_price_2 else [], _t2),
+        ]
+    initial_beta_priors, initial_beta_sd_mult = render_initial_beta_priors(
+        df, n_train, target, target2, _groups, key_prefix="d4_")
+
+    st.divider()
+
     if st.button("💾 Save Configuration", type="primary", use_container_width=True):
         if not media:
             st.error("Select at least one media channel.")
@@ -1003,6 +1032,8 @@ def render_tab4():
                 "negative_beta_cols": negative_beta_cols,
                 "per_channel_bounds": per_channel_bounds,
                 "per_channel_bounds_2": per_channel_bounds_2,
+                "initial_beta_priors": initial_beta_priors,
+                "initial_beta_sd_mult": initial_beta_sd_mult,
                 "initial_media_betas":         {c: 0.0     for c in media},
                 "initial_comp_betas":          {c: -0.0001 for c in comp_media},
                 "initial_own_nonmedia_betas":  {c: 0.0     for c in non_media},

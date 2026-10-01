@@ -194,6 +194,19 @@ def build_eq_static(df_full, g, n_train):
         sd0[1 + s] = 3.0 * y_std / reg_mean if reg_mean > 1e-9 else 1e-2
     # dummy betas keep the original sd = std(y)
 
+    # User initial-beta priors (Tab 4 · D4): global shrink of the automatic sd,
+    # then per-variable mean / sd overrides for the period-0 beta.
+    sd_mult = float(g.get("INITIAL_BETA_SD_MULT", 1.0))
+    ibp = g.get("INITIAL_BETA_PRIORS", {}) or {}
+    for s_i, col in enumerate(reg_cols):
+        sd0[1 + s_i] *= sd_mult
+        pr = ibp.get(col)
+        if pr:
+            if pr.get("mean") is not None:
+                x0[1 + s_i] = float(pr["mean"])
+            if pr.get("sd"):
+                sd0[1 + s_i] = float(pr["sd"])
+
     # ── per-state clamps (same rules the filter applied) ─────────────────
     lo = np.full(dim, -np.inf)
     hi = np.full(dim, np.inf)
