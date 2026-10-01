@@ -470,6 +470,9 @@ def _add_posterior_bands(result, df_full, g, post_e):
     for _si, _col, _k in _linear_state_index_map(g):
         _coef_ci(_col, _si)
     result["coef_ci_df"] = pd.DataFrame.from_dict(coef_rows, orient="index")
+    # Per-period 95% band of every state's beta_t (T, dim) — read by the Results
+    # tab's time-varying beta charts (modules/beta_plots.py).
+    result["beta_lo"], result["beta_hi"] = np.percentile(X_keep, [2.5, 97.5], axis=0)
 
     for state_i, col, _kind in _linear_state_index_map(g):
         if col not in df_full.columns or f"ShortTerm_{col}" not in contrib_df.columns:

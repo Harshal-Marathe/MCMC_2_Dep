@@ -13,7 +13,7 @@ def render_sidebar(nevergrad_available: bool):
     with st.sidebar:
         st.markdown("## 📡 2 dependent model")
         st.markdown("**Recursive Bayesian Estimation**  \nMarketing Mix Modeling")
-        st.caption("Core: MCMC (NUTS) · build 5 · coefficient-based Short-Term table")
+        st.caption("Core: MCMC (NUTS) · build 6 · time-varying beta charts")
         # Which copy of the code is actually running? (paths differ if you edit one
         # folder but Streamlit is serving another - e.g. an old clone or Codespace)
         _mod_dir = os.path.dirname(os.path.abspath(__file__))

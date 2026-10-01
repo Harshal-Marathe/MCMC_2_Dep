@@ -19,7 +19,8 @@ Modularized version of the original single-file Streamlit app.
     ├── statespace.py              # State-space equations: obs matrix, process noise, adstock
     ├── mcmc.py                    # NUTS core: JAX equations, priors, sampler, posterior summaries
     ├── layout.py                  # Flat theta layout (shared by refit + priors)
-    ├── contrib_tables.py          # Coefficient (95% CI) + coefficient-based Short-Term table
+    ├── contrib_tables.py          # Short-Term contribution table (time-averaged beta x input)
+    ├── beta_plots.py              # Per-variable time-varying beta chart (beta_t left axis, input right axis)
     ├── uncertainty.py             # Band-column filter, seed stability, VIF
     ├── bounds.py                  # theta0 + per-channel bounds builder
     ├── pipeline.py                 # run_full_pipeline() / joint / chained — ties it all together
@@ -68,4 +69,4 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The sidebar shows `build 5` and the folder the app is running from.
+The sidebar shows `build 6` and the folder the app is running from.

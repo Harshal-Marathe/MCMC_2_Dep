@@ -22,8 +22,9 @@ from plotly.subplots import make_subplots
 from modules.ui_helpers import section, need_model, safe_multiselect
 from modules.transforms import hill_transform, power_transform, apply_transformation
 from modules.exports import build_betas_df, build_master_workbook_bytes, build_full_results_zip_bytes
-from modules.contrib_tables import (coefficient_table, coefficient_contrib_frame,
+from modules.contrib_tables import (coefficient_contrib_frame,
                                     shortterm_table, shortterm_table_html)
+from modules.beta_plots import render_beta_charts
 
 
 def _render_tab7_promote_section():
@@ -550,27 +551,7 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
     rescale_factor, excluded_media, promo_cols = _render_spend_settings(kp, g, df)
     price_factor, roi_adj = _render_roi_value_conversion_panel(kp, g)
 
-    # ── Coefficients (95% credible interval) ────────────────────────────
-    st.markdown("#### Coefficients (95% credible interval)")
-    coef_tbl = coefficient_table(res, g)
-    st.dataframe(
-        coef_tbl.style.format({
-            "Coefficient": "{:.6g}", "95% CI Low": "{:.6g}",
-            "95% CI High": "{:.6g}", "P(Coef > 0)": "{:.1%}",
-        }, na_rep="—"),
-        use_container_width=True, hide_index=True, key=f"{kp}df_coef",
-    )
-    st.caption(
-        "**Coefficient** = time-average of the smoothed β\u209c (posterior mean). "
-        "**95% CI** = 2.5 / 97.5 percentiles across MCMC draws of each draw's "
-        "time-averaged β. The Short-Term table below uses **only the Coefficient** "
-        "(never the CI bounds)."
-    )
-    if coef_tbl["95% CI Low"].isna().all():
-        st.info("95% CIs aren't stored on this result (fitted with an older build). "
-                "Re-run the model to populate them.")
-
-    # ── Short-Term Contribution Summary (coefficient x Sum of Input) ────
+    # ── Short-Term Contribution Summary (time-averaged beta x Sum of Input) ────
     st.markdown("#### Short-Term Contribution Summary")
     st_tbl = shortterm_table(
         res, g, df, rescale_factor, excluded_media, promo_cols,
@@ -578,7 +559,7 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
                              if v in g.get("MEDIA_COLS", []) else float(price_factor)))
     st.markdown(shortterm_table_html(st_tbl), unsafe_allow_html=True)
     st.caption(
-        "**Contribution** = Coefficient × Sum of Input (Intercept input = 1 per period). "
+        "**Contribution** = time-averaged β × Sum of Input (Intercept input = 1 per period). "
         "**Contri % (Pos=100)**: positive contributions scaled to sum to 100 "
         "(negatives show 0). **Contri % (Pos/Neg=100)**: |Contribution| ÷ Σ|Contribution|. "
         "**ROAS** = Contribution × value factor ÷ (Raw Spend × rescale) and **EI** = "
@@ -816,6 +797,10 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
         st.download_button("📥 Download ROI Report",
                            roi_df.to_csv(index=False).encode(), "roi_report.csv", "text/csv",
                            key=f"{kp}dl_roi")
+
+    st.markdown("### G2 · Time-Varying Betas")
+    st.caption("Pick a variable: left axis = its time-varying β\u209c, right axis = its input over the same periods.")
+    render_beta_charts(df, config, res, g, kp)
 
     st.markdown("### H · Response Curves")
     params       = res["params"]

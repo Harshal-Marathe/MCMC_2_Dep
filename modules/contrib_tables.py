@@ -145,7 +145,6 @@ def shortterm_table(res, g, df_full, rescale_factor, excluded_media, promo_cols,
         "Contri % (Pos=100)": d["pct_pos"],
         "Contri % (Pos/Neg=100)": d["pct_abs"],
         "EI": d["EI"], "ROAS": d["ROAS"],
-        "Coefficient": d["coef"],
     })
     return out
 
@@ -184,7 +183,7 @@ def shortterm_table_html(t):
             two(r["Raw Sum of Input"]), two(r["Sum of Raw Spend"]),
             f"{r['Sum of Input']:.0f}" if float(r["Sum of Input"]).is_integer() else two(r["Sum of Input"]),
             two(r["Contribution"]), bar, two(r["Contri % (Pos/Neg=100)"]),
-            two(r["EI"]), two(r["ROAS"]), f"{r['Coefficient']:.6g}",
+            two(r["EI"]), two(r["ROAS"]),
         ]
         body.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
     return (_CSS + '<div class="stt-wrap"><table class="stt"><thead><tr>' + hdr
