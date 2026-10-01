@@ -89,7 +89,7 @@ def shortterm_table(res, g, df_full, rescale_factor, excluded_media, promo_cols,
       Contribution            = Coefficient x Sum of Input
       Contri % (Pos=100)      = positives scaled to sum to 100 (negatives -> 0)
       Contri % (Pos/Neg=100)  = |Contribution| / sum |Contribution| x 100
-      ROAS  (own spend vars)  = Contribution x value_adj(var) / (Raw Spend x rescale)
+      ROI   (own spend vars)  = Contribution x avg price (Prophet tab) / (Raw Spend x rescale)
       EI    (own spend vars)  = Contri % (Spend Pool) / Spend %
                                 (both shares taken within the spend pool only)
 
@@ -132,14 +132,14 @@ def shortterm_table(res, g, df_full, rescale_factor, excluded_media, promo_cols,
     #     EI              = Contri % (pool) / Spend %
     # (Contri % uses the raw contribution — no value/price adjustment — so it is
     # purely each channel's proportion of the pool's contribution.)
-    roas = np.zeros(len(d)); ei = np.zeros(len(d))
+    roi = np.zeros(len(d)); ei = np.zeros(len(d))
     contri_pool = np.zeros(len(d)); spend_pct = np.zeros(len(d))
     in_pool = (d["Variable"].isin(own_vars) & (d["raw_spend"] * rescale_factor > 1e-9)).values
     adj = np.array([value_adj(v) for v in d["Variable"]], dtype=float)
     sp = d["raw_spend"].values * rescale_factor
 
-    # ROAS = Contribution x value factor / (Raw Spend x rescale)
-    roas[in_pool] = (c * adj)[in_pool] / sp[in_pool]
+    # ROI = Contribution x average price (Prophet tab) / (Raw Spend x rescale)
+    roi[in_pool] = (c * adj)[in_pool] / sp[in_pool]
 
     pool_sp = sp[in_pool].sum()
     pool_c = c[in_pool].sum()
@@ -149,7 +149,7 @@ def shortterm_table(res, g, df_full, rescale_factor, excluded_media, promo_cols,
         contri_pool[in_pool] = c[in_pool] / pool_c * 100
     ok = in_pool & (spend_pct > 1e-9)
     ei[ok] = contri_pool[ok] / spend_pct[ok]
-    d["ROAS"], d["EI"] = roas, ei
+    d["ROI"], d["EI"] = roi, ei
     d["contri_pool"], d["spend_pct"] = contri_pool, spend_pct
 
     out = pd.DataFrame({
@@ -163,7 +163,7 @@ def shortterm_table(res, g, df_full, rescale_factor, excluded_media, promo_cols,
         "Contri % (Pos/Neg=100)": d["pct_abs"],
         "Contri % (Spend Pool)": d["contri_pool"],
         "Spend %": d["spend_pct"],
-        "EI": d["EI"], "ROAS": d["ROAS"],
+        "EI": d["EI"], "ROI": d["ROI"],
     })
     return out
 
@@ -203,7 +203,7 @@ def shortterm_table_html(t):
             f"{r['Sum of Input']:.0f}" if float(r["Sum of Input"]).is_integer() else two(r["Sum of Input"]),
             two(r["Contribution"]), bar, two(r["Contri % (Pos/Neg=100)"]),
             two(r["Contri % (Spend Pool)"]), two(r["Spend %"]),
-            two(r["EI"]), two(r["ROAS"]),
+            two(r["EI"]), two(r["ROI"]),
         ]
         body.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
     return (_CSS + '<div class="stt-wrap"><table class="stt"><thead><tr>' + hdr

@@ -555,8 +555,7 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
     st.markdown("#### Short-Term Contribution Summary")
     st_tbl = shortterm_table(
         res, g, df, rescale_factor, excluded_media, promo_cols,
-        value_adj=lambda v: (_roi_value_adj_factor(v, price_factor, roi_adj)
-                             if v in g.get("MEDIA_COLS", []) else float(price_factor)))
+        value_adj=lambda v: float(price_factor))
     st.markdown(shortterm_table_html(st_tbl), unsafe_allow_html=True)
     st.caption(
         "**Contribution** = time-averaged β × Sum of Input (Intercept input = 1 per period). "
@@ -566,8 +565,9 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
         "that have spend (own media not excluded + flagged promo) × 100. "
         "**Spend %** = variable's Spend ÷ Σ Spend of the same pool × 100. "
         "**EI** = Contri % (Spend Pool) ÷ Spend %. "
-        "**ROAS** = Contribution × value factor ÷ (Raw Spend × rescale), only for own spend variables "
-        f"(rescale ×{rescale_factor:,.0f}; value factor from the 🎛️ ROI Value Conversion panel)."
+        "**ROI** = Contribution × average price (Tab 2 · Prophet, 1 if modeling Sales Value) ÷ "
+        "(Raw Spend × rescale), only for own spend variables "
+        f"(price factor ×{price_factor:,.4f}; spend rescale ×{rescale_factor:,.0f} from Spend Basis Settings)."
     )
     st.download_button("📥 Download Short-Term Table", st_tbl.to_csv(index=False).encode(),
                        "short_term_contribution.csv", "text/csv", key=f"{kp}dl_st_tbl")
