@@ -578,7 +578,16 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
 
     if True:
         st.markdown("#### Long-Term Contribution Summary")
-        df_lt, pos_lt, neg_lt = _contribution_table(totals_lt, "LongTerm_")
+        # Error term = Actual - Fitted (residual), summed over all periods. It is
+        # shown as its own row so the long-term table + error reconcile to the
+        # target:  Y = Short-term pieces + Error.  It is added ONLY to this
+        # display table: totals_lt (used by the intercept check and the pies)
+        # stays untouched.
+        _resid = res.get("residuals")
+        totals_lt_tbl = totals_lt.copy()
+        if _resid is not None:
+            totals_lt_tbl["LongTerm_Error Term"] = float(np.nansum(np.asarray(_resid, dtype=float)))
+        df_lt, pos_lt, neg_lt = _contribution_table(totals_lt_tbl, "LongTerm_")
         st.dataframe(df_lt, use_container_width=True, hide_index=True, key=f"{kp}df_lt")
         check_lt = pos_lt + neg_lt
         c1l, c2l, c3l = st.columns(3)
@@ -586,6 +595,8 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
         c2l.metric("Negative pool", f"{neg_lt:,.2f}")
         c3l.metric("Net", f"{check_lt:,.2f}")
         st.caption("✅ Positive shares sum to **+100 %** · Negative shares sum to **−100 %**")
+        st.caption("**Error Term** = Σ (Actual − Fitted) over all periods — the part of the "
+                   "target the model does not explain.")
         # Intercept reconciliation: Short-Term Intercept = Σ long-term intercept
         # pieces (carryover + boosters [+ I0 baseline in simple mode]).
         _st_int = float(contrib_df["ShortTerm_Intercept"].sum())

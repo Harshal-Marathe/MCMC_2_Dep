@@ -131,7 +131,11 @@ def render_fit_and_contrib(df, config, res, target, key_prefix=""):
         st.plotly_chart(fig_bar, use_container_width=True, key=f"{key_prefix}st_bar")
 
     elif view == "Long-term":
-        df_out = _contribution_table(totals_lt, "LongTerm_")
+        _resid = res.get("residuals")
+        totals_lt_tbl = totals_lt.copy()
+        if _resid is not None:
+            totals_lt_tbl["LongTerm_Error Term"] = float(np.nansum(np.asarray(_resid, dtype=float)))
+        df_out = _contribution_table(totals_lt_tbl, "LongTerm_")
         st.dataframe(df_out, use_container_width=True, hide_index=True)
         fig_bar = px.bar(df_out.sort_values("Total Contrib"), x="Total Contrib", y="Channel",
                           orientation="h", title="Long-term Contribution",
