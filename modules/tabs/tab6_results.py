@@ -586,6 +586,18 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
         c2l.metric("Negative pool", f"{neg_lt:,.2f}")
         c3l.metric("Net", f"{check_lt:,.2f}")
         st.caption("✅ Positive shares sum to **+100 %** · Negative shares sum to **−100 %**")
+        # Intercept reconciliation: Short-Term Intercept = Σ long-term intercept
+        # pieces (carryover + boosters [+ I0 baseline in simple mode]).
+        _st_int = float(contrib_df["ShortTerm_Intercept"].sum())
+        _lt_int = float(totals_lt.sum())
+        _diff = _st_int - _lt_int
+        if abs(_diff) <= 1e-6 * (1.0 + abs(_st_int)):
+            st.caption(f"✅ Intercept check: Short-Term Intercept ({_st_int:,.2f}) = "
+                       f"Σ long-term pieces — carryover + boosters ({_lt_int:,.2f}).")
+        else:
+            st.warning(f"Intercept check: Short-Term Intercept {_st_int:,.2f} ≠ Σ long-term "
+                       f"pieces {_lt_int:,.2f} (difference {_diff:,.2f}). This result was fitted "
+                       "with an older build — re-run the model.")
 
     synergy_cols = [c for c in contrib_df.columns if c.startswith("Synergy_")]
     if synergy_cols:

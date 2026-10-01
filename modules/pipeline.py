@@ -48,12 +48,13 @@ def _postprocess_equation(df_full, g, params, x_smooth, adstocked_media,
     whether that equation came from a single-dependent fit or from one
     half of the joint bivariate fit.
 
-    `lt_override` (T, N_EFFECTORS) and `carry_override` (T,) carry the
-    per-draw posterior means of the long-term intercept pieces
-    (gamma_k * f(effector_k) and G0 * I_{t-1}). Those are nonlinear in the
+    `lt_override` (T, N_EFFECTORS) carries the per-draw posterior mean of the
+    intercept boosters (gamma_k * f(effector_k)); they are nonlinear in the
     parameters, so averaging per draw is more faithful than plugging the
-    posterior median into the formula. When omitted, the old plug-in
-    formulas are used.
+    posterior median into the formula. `carry_override` is accepted for
+    compatibility but no longer used: "Intercept Carryover" is now defined as
+    the remainder that makes the long-term intercept pieces add up exactly to
+    the short-term intercept.
     """
     TARGET_COL = g["TARGET_COL"]; MEDIA_COLS = g["MEDIA_COLS"]
     COMP_MEDIA_COLS = g["COMP_MEDIA_COLS"]; PRICE_COLS = g["PRICE_COLS"]
@@ -154,32 +155,28 @@ def _postprocess_equation(df_full, g, params, x_smooth, adstocked_media,
 
     contrib_df = df_full[[TARGET_COL]].copy()
 
-    G0 = float(params["G0"])
     I0 = float(params.get("I0", 0.0))
-    prev_intercept = np.empty(len(df_full))
-    prev_intercept[1:] = x_smooth[:-1, 0]
-    prev_intercept[0]  = x_smooth[0, 0]
-    intercept_carryover = G0 * prev_intercept
-    if carry_override is not None:
-        intercept_carryover = np.asarray(carry_override, dtype=float)
+    simple_intercept = g.get("INTERCEPT_DYNAMICS_TYPE", "carryover") == "simple"
 
     # Short-term view: the intercept as it actually enters the observation
     # equation, Y_t = intercept_t + Σ beta_i,t * media_i,t + ...  (i.e. the
     # full smoothed intercept level, not a residual).
     contrib_df["ShortTerm_Intercept"] = x_smooth[:, 0]
 
-    # Long-term view: decompose that SAME intercept per its own state
-    # equation into a persistence/baseline piece and (below) a per-effector
-    # boost piece. Named "Intercept Carryover" (not "Intercept") so it
-    # doesn't collide with the short-term "Intercept" row when Short-Term +
-    # Long-Term are combined.
-    #   Carryover dynamics: I_t = G0 * I_(t-1) + Σ_k gamma_k * f(media_k,t)
-    #   Simple dynamics:    I_t = I0           + Σ_k gamma_k * f(media_k,t)
-    # In "simple" mode G0 is 0 so intercept_carryover is already all-zero;
-    # the constant I0 baseline is broken out into its own column instead so
-    # the long-term pieces still sum to the full intercept level.
-    contrib_df["LongTerm_Intercept Carryover"] = intercept_carryover
-    if g.get("INTERCEPT_DYNAMICS_TYPE", "carryover") == "simple":
+    # Long-term view: the SAME intercept split into its pieces, so that
+    #
+    #     ShortTerm_Intercept  =  LongTerm_Intercept Carryover
+    #                             + Σ_k LongTerm_<intercept booster k>
+    #                             (+ LongTerm_Intercept Baseline (I0) in "simple" mode)
+    #
+    # holds EXACTLY in every period. The boosters (gamma_k * f(effector_k,t))
+    # and the I0 baseline are computed from the model; "Intercept Carryover" is
+    # the persisting part of the intercept — what is left after today's
+    # boosters are taken out, i.e. G0 * I_(t-1) plus the small intercept state
+    # innovation and, in period 1, the starting level. (It is filled in below,
+    # after the booster columns exist; this line only fixes the column order.)
+    contrib_df["LongTerm_Intercept Carryover"] = 0.0
+    if simple_intercept:
         contrib_df["LongTerm_Intercept Baseline (I0)"] = np.full(len(df_full), I0)
 
     for i, col in enumerate(MEDIA_COLS):
@@ -216,6 +213,13 @@ def _postprocess_equation(df_full, g, params, x_smooth, adstocked_media,
         raw = df_full[col].values.astype(float)
         transformed = apply_transformation(raw, INTERCEPT_TRANSFORM_TYPE, ni_int, si_int)
         contrib_df[f"LongTerm_{col}"] = params["gamma"][k] * transformed
+
+    # Reconcile the intercept (see the note above): carryover = intercept level
+    # minus the boosters (minus the I0 baseline in simple mode).
+    _boost_cols = [f"LongTerm_{c}" for c in g["INTERCEPT_EFFECTORS"]
+                   if c in df_full.columns and f"LongTerm_{c}" in contrib_df.columns]
+    _boost = contrib_df[_boost_cols].sum(axis=1).values if _boost_cols else 0.0
+    contrib_df["LongTerm_Intercept Carryover"] = x_smooth[:, 0] - _boost - (I0 if simple_intercept else 0.0)
 
     for k, (tgt, src) in enumerate(g["CROSS_MEDIA_PAIRS"]):
         contrib_df[f"Synergy_{tgt}_from_{src}"] = cross_beta_contrib[:, k]

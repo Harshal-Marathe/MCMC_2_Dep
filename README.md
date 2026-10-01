@@ -69,4 +69,4 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The sidebar shows `build 6` and the folder the app is running from.
+The sidebar shows `build 7` and the folder the app is running from.
