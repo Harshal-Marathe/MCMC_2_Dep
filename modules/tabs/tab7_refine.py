@@ -15,7 +15,10 @@ import pandas as pd
 import streamlit as st
 
 from modules.ui_helpers import section, info, per_channel_info, need_data, need_model
+import copy
+
 from modules.bounds_ui import render_per_channel_bounds
+from modules.initial_priors_ui import render_initial_beta_priors
 from modules.dependencies import NEVERGRAD_AVAILABLE
 from modules.tabs.tab6_results import render_full_results
 from modules.refit import (
@@ -315,6 +318,35 @@ def render_tab7():
                     mcmc_cfg=mcmc_cfg,
                     manual_overrides={adj_col: overrides},
                 )
+
+    st.divider()
+
+    # ── Section B2: initial-β priors ─────────────────────────────────
+    st.markdown("### B2 · Initial β Priors (starting beta of each variable) & Refit")
+    per_channel_info(
+        "🎯 If a variable's β starts very high in period 0 and then decays (see the "
+        "<b>Time-varying β</b> chart), set its <b>Initial mean</b> and a tighter "
+        "<b>Initial sd</b> here — or shrink every automatic sd with the slider — then "
+        "refit. Rows left at 0 keep the default."
+    )
+    _rl = variable_role_lists(refit_config)
+    _lab = {"media": "Own Media", "comp_media": "Comp Media", "non_media": "Non-Media",
+            "comp_nonmedia": "Comp Non-Media", "price": "Price"}
+    _groups = [(_lab[r], cols, target) for r, cols in _rl.items()]
+    _new_priors, _new_mult = render_initial_beta_priors(
+        df, int(refit_config["n_train"]), target, None, _groups, key_prefix="refit_d4_",
+        current=refit_config.get("initial_beta_priors"),
+        current_mult=refit_config.get("initial_beta_sd_mult", 1.0))
+    if st.button("🎯 Apply Initial β Priors & Refit", type="primary", key="refit_d4_btn"):
+        _cfg = copy.deepcopy(refit_config)
+        _cfg["initial_beta_priors"] = _new_priors
+        _cfg["initial_beta_sd_mult"] = _new_mult
+        _run_and_record(
+            df, _cfg, "Initial β priors",
+            ", ".join(_new_priors) if _new_priors else f"sd × {_new_mult:g}",
+            unfreeze_cols=set(), freeze_existing=freeze_existing,
+            refit_sigma=refit_sigma, refit_G0=refit_G0, mcmc_cfg=mcmc_cfg,
+        )
 
     st.divider()
 

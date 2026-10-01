@@ -31,14 +31,18 @@ def auto_initial_sd(df_train, target, col):
     return 3.0 * y_std / reg_mean if reg_mean > 1e-9 else 1e-2
 
 
-def render_initial_beta_priors(df, n_train, target, target2, var_groups, key_prefix="d4_"):
+def render_initial_beta_priors(df, n_train, target, target2, var_groups, key_prefix="d4_",
+                               current=None, current_mult=1.0):
     """
     var_groups: list of (type_label, [col, ...], target_for_these_cols).
+    current / current_mult: previously saved priors, used to pre-fill the table.
     Returns (priors_dict, sd_mult).
     """
+    current = current or {}
     df_tr = df.iloc[:n_train]
     sd_mult = st.slider(
-        "Shrink all automatic initial sds by", 0.01, 1.0, 1.0, 0.01,
+        "Shrink all automatic initial sds by", 0.01, 1.0,
+        float(min(max(current_mult or 1.0, 0.01), 1.0)), 0.01,
         key=f"{key_prefix}sd_mult",
         help="1.0 = default (very wide). e.g. 0.1 makes every variable's starting "
              "beta 10x tighter around its initial mean. Per-variable sds typed "
@@ -52,7 +56,8 @@ def render_initial_beta_priors(df, n_train, target, target2, var_groups, key_pre
             seen.add(c)
             rows.append({"Variable": c, "Type": label,
                          "Auto initial sd": auto_initial_sd(df_tr, tgt, c) * sd_mult,
-                         "Initial mean": 0.0, "Initial sd (0 = auto)": 0.0})
+                         "Initial mean": float((current.get(c) or {}).get("mean") or 0.0),
+                         "Initial sd (0 = auto)": float((current.get(c) or {}).get("sd") or 0.0)})
     if not rows:
         st.caption("No regression variables selected yet.")
         return {}, float(sd_mult)

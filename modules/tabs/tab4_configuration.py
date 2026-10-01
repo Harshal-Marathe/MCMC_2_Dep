@@ -972,7 +972,9 @@ def render_tab4():
             ("Price (Dep 2)", list(price_vars_2) if use_price_2 else [], _t2),
         ]
     initial_beta_priors, initial_beta_sd_mult = render_initial_beta_priors(
-        df, n_train, target, target2, _groups, key_prefix="d4_")
+        df, n_train, target, target2, _groups, key_prefix="d4_",
+        current=((st.session_state.config or {}).get("initial_beta_priors")),
+        current_mult=((st.session_state.config or {}).get("initial_beta_sd_mult", 1.0)))
 
     st.divider()
 
