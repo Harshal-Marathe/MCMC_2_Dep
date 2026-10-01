@@ -562,8 +562,11 @@ def render_full_results(df, config, res, target, key_prefix="", pcb_key="per_cha
         "**Contribution** = time-averaged β × Sum of Input (Intercept input = 1 per period). "
         "**Contri % (Pos=100)**: positive contributions scaled to sum to 100 "
         "(negatives show 0). **Contri % (Pos/Neg=100)**: |Contribution| ÷ Σ|Contribution|. "
-        "**ROAS** = Contribution × value factor ÷ (Raw Spend × rescale) and **EI** = "
-        "ROAS ÷ pooled ROAS, both only for own spend variables "
+        "**Contri % (Spend Pool)** = variable's Contribution ÷ Σ Contribution of the variables "
+        "that have spend (own media not excluded + flagged promo) × 100. "
+        "**Spend %** = variable's Spend ÷ Σ Spend of the same pool × 100. "
+        "**EI** = Contri % (Spend Pool) ÷ Spend %. "
+        "**ROAS** = Contribution × value factor ÷ (Raw Spend × rescale), only for own spend variables "
         f"(rescale ×{rescale_factor:,.0f}; value factor from the 🎛️ ROI Value Conversion panel)."
     )
     st.download_button("📥 Download Short-Term Table", st_tbl.to_csv(index=False).encode(),
